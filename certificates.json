@@ -1,0 +1,22 @@
+{
+  "certificates": [
+    {
+      "id": "PTSC2025-0123",
+      "key": "fc92b18e1a",
+      "name": "Rohan Vishwakarma",
+      "event": "Web Development Workshop",
+      "type": "Certificate of Merit",
+      "date": "2025-03-15",
+      "issuer": "Dr. A.K. Singh"
+    },
+    {
+      "id": "PTSC2025-0124",
+      "key": "a8d5c3f7b2",
+      "name": "Priya Sharma",
+      "event": "Data Science Bootcamp",
+      "type": "Certificate of Participation",
+      "date": "2025-02-20",
+      "issuer": "Prof. R.K. Gupta"
+    }
+  ]
+}
