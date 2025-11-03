@@ -93,7 +93,121 @@ function showCertificate() {
     
     if (loadingState) loadingState.style.display = 'none';
     if (errorState) errorState.style.display = 'none';
-    if (certificateState) certificateState.style.display = 'block';
+    if (certificateState) {
+        certificateState.style.display = 'block';
+        // Enable light-weight client-side protections to deter casual tampering
+        try { enableClientProtection(); } catch (e) { /* non-fatal */ }
+        // Apply responsive scaling
+        try { applyResponsiveScale(); } catch (e) { /* non-fatal */ }
+    }
+}
+
+// ==========================
+// Responsive Certificate Scaling
+// ==========================
+
+/**
+ * Calculate and apply optimal scale for certificate container based on viewport
+ */
+function applyResponsiveScale() {
+    const container = document.querySelector('.certificate-container');
+    if (!container) return;
+    
+    // Certificate base dimensions (A4 landscape)
+    const baseWidth = 1123;
+    const baseHeight = 794;
+    
+    // Get available viewport space (with padding)
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    
+    // Calculate padding/margin space
+    const horizontalPadding = viewportWidth < 768 ? 20 : 40;
+    const verticalPadding = viewportWidth < 768 ? 100 : 200; // Account for navigation
+    
+    const availableWidth = viewportWidth - horizontalPadding;
+    const availableHeight = viewportHeight - verticalPadding;
+    
+    // Calculate scale ratios
+    const scaleX = availableWidth / baseWidth;
+    const scaleY = availableHeight / baseHeight;
+    
+    // Use the smaller ratio to ensure certificate fits, with max scale of 1
+    let scale = Math.min(scaleX, scaleY, 1);
+    
+    // Ensure minimum scale for readability
+    scale = Math.max(scale, 0.25);
+    
+    // Apply scale
+    container.style.transform = `scale(${scale})`;
+    
+    // Adjust container wrapper height to prevent overlap
+    const scaledHeight = baseHeight * scale;
+    const certificateState = document.querySelector('.certificate-state');
+    if (certificateState) {
+        certificateState.style.minHeight = `${scaledHeight + 40}px`;
+    }
+}
+
+/**
+ * Debounce function to limit resize event calls
+ */
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// Reapply scaling on window resize with debouncing
+if (typeof window !== 'undefined') {
+    window.addEventListener('resize', debounce(applyResponsiveScale, 250));
+}
+
+// ==========================
+// Client-side protection (deterrence)
+// ==========================
+
+let _protectionHandlers = null;
+
+function enableClientProtection() {
+    // Avoid double-registering
+    if (_protectionHandlers) return;
+
+    const onContext = (e) => {
+        // Only block right-click on the certificate area
+        if (e.target.closest && e.target.closest('.certificate-container')) {
+            e.preventDefault();
+        }
+    };
+
+    const onKey = (e) => {
+        // Block common devtools shortcuts: F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U
+        if (e.key === 'F12' ||
+            (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J')) ||
+            (e.ctrlKey && (e.key === 'U' || e.key === 'u')) ) {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        }
+    };
+
+    document.addEventListener('contextmenu', onContext);
+    document.addEventListener('keydown', onKey, true);
+
+    _protectionHandlers = { onContext, onKey };
+}
+
+function disableClientProtection() {
+    if (!_protectionHandlers) return;
+    document.removeEventListener('contextmenu', _protectionHandlers.onContext);
+    document.removeEventListener('keydown', _protectionHandlers.onKey, true);
+    _protectionHandlers = null;
 }
 
 // ==========================================
@@ -468,86 +582,101 @@ function printCertificate() {
 async function downloadCertificate(format) {
     const certificateContainer = document.querySelector('.certificate-container');
     const navigation = document.querySelector('.navigation');
-    
+
     if (!certificateContainer) {
         alert('Certificate not found. Please ensure the certificate is loaded.');
         return;
     }
-    
+
+    // Prepare filename details
+    const recipientName = document.getElementById('recipientName')?.textContent || 'Certificate';
+    const certificateId = document.getElementById('certificateId')?.textContent || 'PTSC';
+    const filenameBase = `${recipientName.replace(/\s+/g, '_')}_${certificateId}_PTSC_Certificate`;
+
+    // Use an offscreen clone to ensure consistent A4 dimensions for capture
+    const clone = certificateContainer.cloneNode(true);
+    clone.style.position = 'absolute';
+    clone.style.left = '-9999px';
+    clone.style.top = '0';
+    clone.style.width = '1123px';
+    clone.style.height = '794px';
+    clone.style.margin = '0';
+    clone.style.boxShadow = 'none';
+    clone.style.borderRadius = '0';
+
+    // Add a light watermark with certificate id to the clone (traceable)
+    const watermark = document.createElement('div');
+    watermark.className = 'download-watermark';
+    watermark.textContent = `${certificateId}`;
+    clone.appendChild(watermark);
+
+    document.body.appendChild(clone);
+
     try {
-        // Hide navigation during capture
-        if (navigation) {
-            navigation.style.display = 'none';
-        }
-        
-        // Show loading state
+        // Temporarily hide navigation to avoid visual shift
+        if (navigation) navigation.style.visibility = 'hidden';
+
+        // Provide user feedback
         const originalCursor = document.body.style.cursor;
         document.body.style.cursor = 'wait';
-        
-        // Configure html2canvas for better quality
-        const canvas = await html2canvas(certificateContainer, {
-            scale: 2, // Higher resolution
+
+        // Use devicePixelRatio for better quality on mobile/retina
+        const pixelRatio = Math.max(2, window.devicePixelRatio || 1);
+
+        const canvas = await html2canvas(clone, {
+            scale: pixelRatio,
             useCORS: true,
             backgroundColor: '#ffffff',
-            width: 1123, // A4 landscape width
-            height: 794,  // A4 landscape height
+            width: 1123,
+            height: 794,
             scrollX: 0,
-            scrollY: 0
+            scrollY: 0,
+            windowWidth: 1123,
+            windowHeight: 794
         });
-        
-        // Get certificate details for filename
-        const recipientName = document.getElementById('recipientName')?.textContent || 'Certificate';
-        const certificateId = document.getElementById('certificateId')?.textContent || 'PTSC';
-        const filename = `${recipientName.replace(/\s+/g, '_')}_${certificateId}_PTSC_Certificate`;
-        
+
         if (format === 'jpg') {
-            // Download as JPG
             const link = document.createElement('a');
-            link.download = `${filename}.jpg`;
+            link.download = `${filenameBase}.jpg`;
             link.href = canvas.toDataURL('image/jpeg', 0.95);
             link.click();
-            
+
         } else if (format === 'pdf') {
-            // Download as PDF
             const { jsPDF } = window.jspdf;
-            
-            // A4 landscape dimensions in mm
             const pdf = new jsPDF('landscape', 'mm', 'a4');
-            const pdfWidth = 297; // A4 landscape width in mm
-            const pdfHeight = 210; // A4 landscape height in mm
-            
-            // Calculate image dimensions to fit A4
-            const canvasWidth = canvas.width;
-            const canvasHeight = canvas.height;
-            const ratio = Math.min(pdfWidth / canvasWidth, pdfHeight / canvasHeight);
-            
-            const imgWidth = canvasWidth * ratio;
-            const imgHeight = canvasHeight * ratio;
-            
-            // Center the image on the page
-            const x = (pdfWidth - imgWidth) / 2;
-            const y = (pdfHeight - imgHeight) / 2;
-            
-            // Add image to PDF
-            pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', x, y, imgWidth, imgHeight);
-            pdf.save(`${filename}.pdf`);
+            const pdfWidth = 297; // mm
+            const pdfHeight = 210; // mm
+
+            // Convert canvas px to mm at 96 DPI baseline
+            const pxPerMm = 96 / 25.4; // ~3.78
+            const imgWidthMm = canvas.width / pxPerMm;
+            const imgHeightMm = canvas.height / pxPerMm;
+
+            // Fit image into PDF while keeping aspect ratio
+            const ratio = Math.min(pdfWidth / imgWidthMm, pdfHeight / imgHeightMm);
+            const finalWidth = imgWidthMm * ratio;
+            const finalHeight = imgHeightMm * ratio;
+            const x = (pdfWidth - finalWidth) / 2;
+            const y = (pdfHeight - finalHeight) / 2;
+
+            pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', x, y, finalWidth, finalHeight);
+            pdf.save(`${filenameBase}.pdf`);
         }
-        
+
         // Restore UI
         document.body.style.cursor = originalCursor;
-        if (navigation) {
-            navigation.style.display = 'flex';
-        }
-        
+        if (navigation) navigation.style.visibility = 'visible';
+
     } catch (error) {
         console.error('Download failed:', error);
         alert('Download failed. Please try again or use the print option.');
-        
-        // Restore UI on error
-        document.body.style.cursor = 'auto';
-        if (navigation) {
-            navigation.style.display = 'flex';
-        }
+    } finally {
+        // Cleanup clone and watermark
+        try { document.body.removeChild(clone); } catch (e) { /* ignore */ }
+        // Ensure navigation visible
+        if (navigation) navigation.style.visibility = 'visible';
+        // Re-enable protection if it was on
+        try { enableClientProtection(); } catch (e) { /* ignore */ }
     }
 }
 

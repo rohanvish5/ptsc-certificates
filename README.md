@@ -109,16 +109,24 @@ Edit `certificates.json`:
 
 ## 🔒 Security Considerations
 
-### Client-Side Validation
-- Certificate data is public (visible in JSON)
-- Security through obscurity via key validation
-- Suitable for participation certificates, not sensitive documents
+### Client-Side Limitations
+- Certificate data is stored client-side (in `certificates.json`) and therefore can be inspected by anyone who has access to the files or the served site.
+- Any client-side protections (disabling right-click, blocking F12 shortcuts, adding watermarks) are deterrents only — they make casual tampering harder but cannot stop a determined user.
 
-### Recommended Enhancements for Production
-- Server-side validation
-- Encrypted certificate data
-- Rate limiting for verification attempts
-- Audit logging
+### Protections Implemented in this Project
+- Added a subtle, traceable watermark (certificate ID) to downloads to make copied/modified certificates easier to trace.
+- Disabled right-click and common devtools keyboard shortcuts on the certificate view to deter casual users from inspecting the DOM.
+- Rendered downloads using an off-screen A4-sized clone and high DPI scaling so PDFs/JPGs are crisp and consistently sized across devices (including mobile).
+
+### Stronger Recommendations for Production (server-side)
+To properly secure issuance and verification you should move critical logic to a server. Recommended upgrades:
+- Server-side verification endpoint that returns only a signed/short-lived token or an image/pdf generated on the server.
+- Use signed certificates (for example, HMAC-signed JSON or JWT) so the client cannot fabricate valid data without the server's private key.
+- Store certificate metadata in a database and generate PDFs server-side to avoid exposing raw data files (e.g., `certificates.json`).
+- Provide a QR code printed on certificates which links to a server verification page — the server confirms authenticity and logs checks.
+- Enforce HTTPS, rate limiting, and authentication for administrative operations (adding certificates).
+
+These server-side changes greatly reduce the ability for users to create convincing, forged certificates and allow you to revoke or re-issue certificates centrally.
 
 ## 📱 Browser Support
 

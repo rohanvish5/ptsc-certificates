@@ -350,21 +350,28 @@ body {
     background: #2d4a6b;
 }
 
-/* Certificate Container */
+/* Certificate Container - Responsive Scaling System */
+.certificate-state {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    min-height: 60vh;
+}
+
 .certificate-container {
     background: white;
     border-radius: 15px;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
-    margin: 20px auto 30px;
     overflow: hidden;
     position: relative;
-    /* A4 Landscape dimensions with max constraints */
-    max-width: 1123px; /* A4 landscape width at 96 DPI (297mm) */
-    max-height: 794px;  /* A4 landscape height at 96 DPI (210mm) */
-    width: 100%;
-    aspect-ratio: 297 / 210; /* Maintain A4 landscape ratio */
+    /* Fixed A4 Landscape dimensions - we'll scale the entire container */
+    width: 1123px;
+    height: 794px;
     display: flex;
     flex-direction: column;
+    /* Scale down on smaller screens using transform */
+    transform-origin: center center;
 }
 
 /* Decorative Border */
@@ -380,20 +387,19 @@ body {
     pointer-events: none;
 }
 
-/* Certificate Header */
+/* Certificate Header - Fixed proportions */
 .certificate-header {
     background: linear-gradient(135deg, #1a365d 0%, #2d4a6b 100%);
     color: white;
     padding: 20px 30px;
     position: relative;
-    min-height: 100px;
+    flex-shrink: 0;
 }
 
 .header-logos {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    flex-wrap: wrap;
     gap: 20px;
 }
 
@@ -401,13 +407,36 @@ body {
     width: 60px;
     height: 60px;
     object-fit: contain;
-    /* Remove border-radius for SVG logos to maintain their original shape */
+    flex-shrink: 0;
+}
+
+/* Make certificate contents harder to select or casually copy */
+.certificate-container {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+/* Watermark used for downloads/prints to deter tampering */
+.download-watermark {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-25deg);
+    font-size: 48px;
+    color: rgba(0,0,0,0.08);
+    font-weight: 700;
+    pointer-events: none;
+    z-index: 5;
+    letter-spacing: 6px;
+    text-transform: uppercase;
 }
 
 .header-text {
     text-align: center;
     flex: 1;
-    min-width: 300px;
+    min-width: 0; /* Allow shrinking */
 }
 
 .institution-title {
@@ -415,6 +444,9 @@ body {
     font-weight: 700;
     margin-bottom: 3px;
     line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .club-title {
@@ -431,11 +463,12 @@ body {
     line-height: 1.2;
 }
 
-/* Logo styling for both KNIT and PTSC logos */
+/* Logo containers */
 .logo-left, .logo-right {
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
 }
 
 /* Certificate Body */
@@ -631,10 +664,24 @@ body {
 }
 
 /* ==========================================
-   RESPONSIVE DESIGN
+   RESPONSIVE DESIGN - Transform Scale Approach
    ========================================== */
 
+/* Calculate scale factor for certificate container */
+@media (max-width: 1200px) {
+    .certificate-container {
+        transform: scale(0.85);
+    }
+}
+
+@media (max-width: 992px) {
+    .certificate-container {
+        transform: scale(0.7);
+    }
+}
+
 @media (max-width: 768px) {
+    /* Index page responsive */
     .container {
         padding: 10px;
     }
@@ -642,6 +689,7 @@ body {
     .logo-section {
         flex-direction: column;
         text-align: center;
+        padding: 20px;
     }
     
     .institution-info {
@@ -664,201 +712,107 @@ body {
         font-size: 1.7em;
     }
     
-    /* Certificate adjustments for mobile */
+    /* Certificate scaling for tablets */
+    .certificate-state {
+        padding: 10px;
+    }
+    
     .certificate-container {
-        max-width: 100%;
-        margin: 10px auto 20px;
-        border-radius: 10px;
+        transform: scale(0.6);
     }
     
-    .certificate-header {
-        padding: 15px 20px;
-        min-height: 80px;
-    }
-    
-    .header-logos {
-        flex-direction: column;
-        gap: 15px;
-    }
-    
-    .header-text {
-        min-width: auto;
-    }
-    
-    .institution-title {
-        font-size: 1.3em;
-    }
-    
-    .club-title {
-        font-size: 1em;
-    }
-    
-    .location-text {
-        font-size: 0.8em;
-    }
-    
-    .certificate-body {
-        padding: 20px 15px;
-    }
-    
-    .certificate-type {
-        font-size: 1.4em;
-        margin-bottom: 15px;
-    }
-    
-    .recipient-name {
-        font-size: 1.8em;
-        margin: 12px 0;
-    }
-    
-    .event-name {
-        font-size: 1.2em;
-        margin: 12px 0;
-    }
-    
-    .certificate-text {
-        font-size: 0.9em;
-    }
-    
-    .completion-text {
-        font-size: 0.9em;
-        margin-top: 12px;
-    }
-    
-    .signatures-section {
-        flex-direction: column;
-        gap: 15px;
-        margin-top: 20px;
-    }
-    
-    .signature-block {
-        min-width: 150px;
-    }
-    
-    .signature-line {
-        width: 150px;
-    }
-    
-    .certificate-footer {
-        padding: 12px 15px;
-    }
-    
-    .verification-section h4 {
-        font-size: 0.9em;
-    }
-    
-    .verification-section p {
-        font-size: 0.8em;
-    }
-    
+    /* Navigation responsive */
     .navigation {
         flex-direction: column;
-        gap: 15px;
+        gap: 10px;
+    }
+    
+    .nav-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .back-btn, .print-btn, .download-btn {
+        width: 100%;
+        margin: 0;
+    }
+    
+    /* Share buttons */
+    .share-section {
+        padding: 20px;
     }
     
     .share-buttons {
         flex-direction: column;
-        align-items: center;
+        align-items: stretch;
     }
     
     .share-btn {
         width: 100%;
-        max-width: 250px;
     }
 }
 
 @media (max-width: 480px) {
+    /* Certificate scaling for small phones */
+    .certificate-state {
+        padding: 5px;
+        min-height: 50vh;
+    }
+    
+    .certificate-container {
+        transform: scale(0.42);
+        border-radius: 8px;
+    }
+    
+    /* Form inputs responsive */
     .form-input {
         padding: 12px 15px;
+        font-size: 16px; /* Prevent zoom on iOS */
     }
     
     .verify-btn {
         padding: 12px 25px;
     }
     
-    /* Extra small screen adjustments */
-    .certificate-container {
-        margin: 5px auto 15px;
-        border-radius: 8px;
+    /* Navigation buttons stacked */
+    .navigation {
+        gap: 8px;
     }
     
-    .certificate-header {
-        padding: 12px 15px;
-        min-height: 70px;
+    .nav-actions {
+        gap: 8px;
     }
     
-    .institution-title {
-        font-size: 1.1em;
-    }
-    
-    .club-title {
+    .back-btn, .print-btn, .download-btn {
+        padding: 10px 15px;
         font-size: 0.9em;
     }
     
-    .location-text {
-        font-size: 0.75em;
+    /* Share section compact */
+    .share-section {
+        padding: 15px;
     }
     
-    .certificate-body {
-        padding: 15px 12px;
-    }
-    
-    .certificate-type {
+    .share-section h3 {
         font-size: 1.2em;
-        margin-bottom: 12px;
+    }
+}
+
+/* Ultra-small screens (iPhone SE, etc.) */
+@media (max-width: 375px) {
+    .certificate-container {
+        transform: scale(0.35);
+    }
+}
+
+/* Very small screens */
+@media (max-width: 320px) {
+    .certificate-container {
+        transform: scale(0.3);
     }
     
-    .recipient-name {
-        font-size: 1.5em;
-        margin: 10px 0;
-    }
-    
-    .event-name {
-        font-size: 1em;
-        margin: 10px 0;
-    }
-    
-    .certificate-text {
-        font-size: 0.8em;
-        margin: 6px 0;
-    }
-    
-    .completion-text {
-        font-size: 0.8em;
-        margin-top: 10px;
-    }
-    
-    .signatures-section {
-        margin-top: 15px;
-        gap: 12px;
-    }
-    
-    .signature-block {
-        min-width: 120px;
-    }
-    
-    .signature-line {
-        width: 120px;
-    }
-    
-    .signature-label {
-        font-size: 0.9em;
-    }
-    
-    .signature-title {
-        font-size: 0.8em;
-    }
-    
-    .certificate-footer {
-        padding: 10px 12px;
-    }
-    
-    .verification-section h4 {
-        font-size: 0.85em;
-    }
-    
-    .verification-section p {
-        font-size: 0.75em;
+    .certificate-state {
+        padding: 2px;
     }
 }
 
